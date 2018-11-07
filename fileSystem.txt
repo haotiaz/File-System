@@ -1,0 +1,220 @@
+from pathlib import Path
+import shutil
+import os
+
+consideration=[] #all of files found by D or R
+selected=[] #files which are considered interesting 
+
+def checkFormat(command:str)->bool:
+    '''return true if the input is valid, or false if otherwise'''
+    command=command.strip()
+    commands=['D','R','A','N','E','T','>','<','F']
+    if len(command)==0:
+        return False
+    if not command[0] in commands:
+        return False
+    if command[0]=='D':
+        if len(command.split(' '))!=2 and len(command)!=1:
+            return False
+    if command[0]=='T':
+        if len(command)==2:
+            return False
+        elif len(command)>2 and command[1]!=' ':
+            return False
+    if command[0] in ['R','N','E','<','>'] :
+        if len(command.split(' '))!=2 :
+            return False
+    if command[0] in ['A','F'] :
+        if len(command) !=1 :
+            return False
+    return True
+
+def hasPath(command:str)->bool:
+	if len(command)>1:
+		return True
+	else:
+		return False
+
+def getPath(command:str)->Path:
+		return Path(command[2:])
+
+def getContents(path):
+    '''command D'''
+    if path.is_file() or (not path.exists()):
+        print('ERROR')
+    else:
+        del consideration[:]
+        for content in sorted(path.iterdir()):
+            consideration.append(content)
+            print(content)
+            
+def getAllContents(path):
+    '''command R'''
+    if path.is_file() or (not path.exists()):
+        print('ERROR')
+    else:
+        del consideration[:]
+        for content in sorted(path.iterdir()):
+            consideration.append(content)
+            print(content)
+        for content in sorted(path.iterdir()):
+            if content.is_dir():
+                getAllContents(content)
+                
+def searchByName(name:str):
+    '''command N'''
+    del selected[:]
+    for content in consideration:
+        if (not content.is_dir()):
+            if content.name==name:
+                selected.append(content)
+    for c in selected:
+        print(c)
+
+def searchByExtension(ext:str):
+    '''commmand E'''
+    del selected[:]
+    for content in consideration:
+        if ext[0]=='.':
+            if ext==os.path.splitext(content.name)[1]:
+                selected.append(content)
+        else:
+            if ext==os.path.splitext(content.name)[1][1:]:
+                #print('a')
+                selected.append(content)
+    for c in selected:
+        print(c)
+    
+def searchByText(text:str):
+    '''command T'''
+    del selected[:]
+    for content in consideration:
+        if content.is_file():
+            try:
+                file=open(content,'r')
+                for line in file:
+                    if text in line:
+                        selected.append(content)
+                        break
+            except Exception:
+                continue
+    for c in selected:
+        print(c)
+    
+def searchByLess(size):
+    '''command <'''
+    del selected[:]
+    for content in consideration:
+        if content.is_file():
+            try:
+                fileSize=os.path.getsize(content)
+                if fileSize<int(size):
+                    selected.append(content)
+            except Exception:
+                continue
+    for c in selected:
+        print(c)
+        
+def searchByMore(size):
+    '''command >'''
+    del selected[:]
+    for content in consideration:
+        if content.is_file():
+            try:
+                fileSize=os.path.getsize(content)
+                if fileSize>int(size):
+                    selected.append(content)
+            except Exception:
+                continue
+    for c in selected:
+        print(c)
+        
+def printFirstLine():
+    '''command F'''
+    for c in selected:
+        if c.is_file():
+            try:
+                file=open(c,'r')
+                print(file.readline().strip())
+                file.close()
+            except Exception:
+                print('NOT TEXT')
+                
+def touchFiles():
+    '''command T'''
+    for c in selected:
+        os.utime(c,None)
+
+if __name__ == '__main__':                
+    while True:
+        userInput=input('')
+        if not checkFormat(userInput):
+            print('ERROR')
+        else:
+            if userInput[0]=='D':
+                if hasPath(userInput):
+                    getContents(getPath(userInput))
+                else:
+                    for content in selected:
+                        if content.is_file():
+                            dupPath=content.with_name(content.name+'.dup')
+                            shutil.copy(content,dupPath)
+            if userInput[0]=='R':
+                getAllContents(getPath(userInput))
+            if userInput[0]=='A':
+                del selected[:]
+                for content in consideration:
+                    selected.append(content)
+                for c in selected:
+                    print(c)
+            if userInput[0]=='N':
+                searchByName(userInput.split(' ')[1])
+            if userInput[0]=='E':
+                searchByExtension(userInput.split(' ')[1])
+            if userInput[0]=='T':
+                if len(userInput)==1:
+                    touchFiles()
+                else:
+                    searchByText(userInput[2:])
+            if userInput[0]=='<':
+                searchByLess(userInput[2:])
+            if userInput[0]=='>':
+                searchByMore(userInput[2:])
+            if userInput[0]=='F':
+                printFirstLine()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
